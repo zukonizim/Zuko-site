@@ -15,23 +15,84 @@
   header nav button { background:#f66; color:#fff; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; margin-left:10px;}
   header nav button:hover { background:#d55;}
   main { max-width:800px; margin:20px auto; padding:10px;}
-  #chatWindow { background:#222; padding:15px; height:60vh; max-height: calc(100vh - 200px); overflow-y:auto; border-radius:10px;}
-  .msg { padding:5px 10px; margin:5px 0; border-radius:8px; max-width:70%; word-wrap:break-word;}
+  
+  /* Chat penceresi */
+  #chatWindow {
+    background:#222;
+    padding:15px;
+    height:60vh;
+    max-height: calc(100vh - 200px);
+    overflow-y:auto;
+    border-radius:10px;
+    width:100%;
+    box-sizing:border-box;
+  }
+
+  .msg {
+    padding:5px 10px;
+    margin:5px 0;
+    border-radius:8px;
+    max-width:80%;
+    word-wrap:break-word;
+  }
   .me { background:#0ff; color:#000; margin-left:auto; text-align:right;}
   .other { background:#333; color:#fff; margin-right:auto; text-align:left;}
-  #inputDiv { display:flex; margin-top:10px;}
-  #messageInput { flex:1; padding:10px; border:none; border-radius:5px 0 0 5px; background:#333; color:#fff;}
-  #sendBtn { padding:10px; background:#0ff; color:#000; border:none; border-radius:0 5px 5px 0; cursor:pointer;}
-  #sendBtn:hover { background:#0cc;}
-  #loginForm { max-width:400px; margin:50px auto; background:#222; padding:20px; border-radius:10px;}
-  #loginForm input { width:100%; padding:10px; margin:10px 0; border-radius:5px; border:none; background:#333; color:#fff;}
-  #loginForm button { width:100%; padding:10px; border:none; border-radius:5px; background:#0ff; color:#000; cursor:pointer; margin-bottom:5px;}
-  #loginForm button:hover { background:#0cc;}
+
+  #inputDiv {
+    display:flex;
+    margin-top:10px;
+    max-width:100%;
+  }
+  #messageInput {
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:5px 0 0 5px;
+    background:#333;
+    color:#fff;
+  }
+  #sendBtn {
+    padding:10px;
+    background:#0ff;
+    color:#000;
+    border:none;
+    border-radius:0 5px 5px 0;
+    cursor:pointer;
+  }
+  #sendBtn:hover { background:#0cc; }
+
+  #loginForm {
+    max-width:400px;
+    margin:50px auto;
+    background:#222;
+    padding:20px;
+    border-radius:10px;
+  }
+  #loginForm input {
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+    border-radius:5px;
+    border:none;
+    background:#333;
+    color:#fff;
+  }
+  #loginForm button {
+    width:100%;
+    padding:10px;
+    border:none;
+    border-radius:5px;
+    background:#0ff;
+    color:#000;
+    cursor:pointer;
+    margin-bottom:5px;
+  }
+  #loginForm button:hover { background:#0cc; }
 
   /* Responsive ayarlar */
   @media (max-width:768px) {
     main { padding:10px; }
-    #chatWindow { height:50vh; max-height: calc(100vh - 180px); }
+    #chatWindow { height:50vh; max-height: calc(100vh - 180px); padding:10px; }
     #messageInput, #sendBtn { padding:8px; font-size:14px; }
     header h1 { font-size:20px; }
     header nav a { font-size:14px; margin-left:10px; }
@@ -98,6 +159,7 @@ const firebaseConfig = {
       currentUser = user;
       loginForm.style.display = 'none';
       chatDiv.style.display = 'block';
+      loadMessages();
     } else {
       loginForm.style.display = 'block';
       chatDiv.style.display = 'none';
@@ -153,9 +215,6 @@ const firebaseConfig = {
         chatWindow.scrollTop = chatWindow.scrollHeight;
       });
   }
-
-  // Mesajları yüklemeyi başlat
-  auth.onAuthStateChanged(user => { if(user) loadMessages(); });
 </script>
 
 </body>
