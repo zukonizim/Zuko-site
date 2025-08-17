@@ -131,6 +131,10 @@
 </main>
 
 <script>
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 const firebaseConfig = {
     apiKey: "AIzaSyCPEdXPqyz-4N3lmiMr_XG5TfKx2CWCjgg",
     authDomain: "zuko-admin.firebaseapp.com",
@@ -140,10 +144,6 @@ const firebaseConfig = {
     appId: "1:877574121420:web:4b829306c764f478fe5f69",
     measurementId: "G-STCX0BFB59"
   };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
   const loginForm = document.getElementById('loginForm');
   const chatDiv = document.getElementById('chatDiv');
   const loginMsg = document.getElementById('loginMsg');
@@ -154,9 +154,21 @@ const firebaseConfig = {
   let currentUser = null;
 
   // Kullanıcı giriş kontrolü
-  auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(async user => {
     if(user){
       currentUser = user;
+
+      // Ban kontrolü
+      const userDoc = await db.collection('users').doc(currentUser.uid).get();
+      const userData = userDoc.data();
+      if(userData && userData.banned){
+        alert("Banlandınız! Chat’e erişemezsiniz.");
+        chatDiv.style.display = 'none';
+        loginForm.style.display = 'block';
+        auth.signOut();
+        return;
+      }
+
       loginForm.style.display = 'none';
       chatDiv.style.display = 'block';
       loadMessages();
@@ -171,7 +183,16 @@ const firebaseConfig = {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     auth.createUserWithEmailAndPassword(email, password)
-      .then(() => loginMsg.textContent = "Kayıt başarılı!")
+      .then(cred => {
+        // Kullanıcı dokümanı oluştur
+        db.collection('users').doc(cred.user.uid).set({
+          uid: cred.user.uid,
+          email: cred.user.email,
+          role: "user",
+          banned: false
+        });
+        loginMsg.textContent = "Kayıt başarılı!";
+      })
       .catch(e => loginMsg.textContent = e.message);
   }
 
