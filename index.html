@@ -2,36 +2,63 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>zuko Chat</title>
+<title>Zuko Chat</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
-  body { font-family: Arial; padding: 20px; }
-  #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 5px; margin-bottom: 10px; }
-  #messages p { margin: 5px 0; }
+  body { font-family: Arial, sans-serif; background:#111; color:#fff; margin:0; padding:0;}
+  header { display:flex; justify-content:space-between; align-items:center; padding:15px; background:#222; border-bottom:1px solid #333;}
+  header h1 { color:#0ff; margin:0;}
+  header nav a { margin-left:15px; color:#0ff; text-decoration:none;}
+  header nav a:hover { color:#0cc;}
+  main { max-width:800px; margin:20px auto; padding:10px;}
+  #chatWindow { background:#222; padding:15px; height:60vh; overflow-y:auto; border-radius:10px;}
+  .msg { padding:5px 10px; margin:5px 0; border-radius:8px; max-width:70%; }
+  .me { background:#0ff; color:#000; margin-left:auto; text-align:right;}
+  .other { background:#333; color:#fff; margin-right:auto; text-align:left;}
+  #inputDiv { display:flex; margin-top:10px;}
+  #messageInput { flex:1; padding:10px; border:none; border-radius:5px 0 0 5px; background:#333; color:#fff;}
+  #sendBtn { padding:10px; background:#0ff; color:#000; border:none; border-radius:0 5px 5px 0; cursor:pointer;}
+  #sendBtn:hover { background:#0cc;}
+  #loginForm { max-width:400px; margin:50px auto; background:#222; padding:20px; border-radius:10px;}
+  #loginForm input { width:100%; padding:10px; margin:10px 0; border-radius:5px; border:none; background:#333; color:#fff;}
+  #loginForm button { width:100%; padding:10px; border:none; border-radius:5px; background:#0ff; color:#000; cursor:pointer;}
+  #loginForm button:hover { background:#0cc;}
 </style>
 </head>
 <body>
-<h1>zuko Chat</h1>
 
-<div id="authDiv">
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Şifre"><br>
-  <button onclick="register()">Kayıt Ol</button>
-  <button onclick="login()">Giriş Yap</button>
-</div>
+<header>
+  <h1>Zuko</h1>
+  <nav>
+    <a href="/">Ana Sayfa</a>
+    <a href="/settings">Ayarlar</a>
+    <a href="/admin">Admin</a>
+  </nav>
+</header>
 
-<div id="chatDiv" style="display:none;">
-  <h2>Hoşgeldin <span id="userEmail"></span></h2>
-  <div id="messages"></div>
-  <input type="text" id="msgInput" placeholder="Mesaj yaz...">
-  <button onclick="sendMessage()">Gönder</button>
-</div>
+<main>
+  <div id="loginForm">
+    <h2>Giriş / Kayıt</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Şifre">
+    <button id="loginBtn">Giriş Yap</button>
+    <button id="registerBtn">Kayıt Ol</button>
+    <p id="loginMsg" style="color:#f66;"></p>
+  </div>
+
+  <div id="chatDiv" style="display:none;">
+    <div id="chatWindow"></div>
+    <div id="inputDiv">
+      <input id="messageInput" type="text" placeholder="Mesaj yaz...">
+      <button id="sendBtn">Gönder</button>
+    </div>
+  </div>
+</main>
 
 <script>
-  // Firebase config
-  const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyCPEdXPqyz-4N3lmiMr_XG5TfKx2CWCjgg",
     authDomain: "zuko-admin.firebaseapp.com",
     projectId: "zuko-admin",
@@ -44,71 +71,71 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
 
+  const loginForm = document.getElementById('loginForm');
+  const chatDiv = document.getElementById('chatDiv');
+  const loginMsg = document.getElementById('loginMsg');
+  const chatWindow = document.getElementById('chatWindow');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  let currentUser = null;
+
+  // Kullanıcı giriş kontrolü
+  auth.onAuthStateChanged(user => {
+    if(user){
+      currentUser = user;
+      loginForm.style.display = 'none';
+      chatDiv.style.display = 'block';
+      loadMessages();
+    } else {
+      loginForm.style.display = 'block';
+      chatDiv.style.display = 'none';
+    }
+  });
+
   // Kayıt
-  function register() {
+  document.getElementById('registerBtn').onclick = () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     auth.createUserWithEmailAndPassword(email, password)
-      .then(user => {
-        db.collection('users').doc(user.user.uid).set({
-          uid: user.user.uid,
-          email: email,
-          role: "user",
-          banned: false
-        });
-        alert('Kayıt başarılı');
-      })
-      .catch(err => alert(err.message));
+      .then(() => loginMsg.textContent = "Kayıt başarılı!")
+      .catch(e => loginMsg.textContent = e.message);
   }
 
   // Giriş
-  function login() {
+  document.getElementById('loginBtn').onclick = () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     auth.signInWithEmailAndPassword(email, password)
-      .then(user => {
-        const uid = user.user.uid;
-        db.collection('users').doc(uid).get().then(doc => {
-          if(doc.exists && doc.data().banned){
-            alert('Banlısınız! Giriş yapılamıyor.');
-            auth.signOut();
-            return;
-          }
-          document.getElementById('authDiv').style.display='none';
-          document.getElementById('chatDiv').style.display='block';
-          document.getElementById('userEmail').innerText = email;
-          loadMessages();
-        });
-      })
-      .catch(err => alert(err.message));
+      .catch(e => loginMsg.textContent = e.message);
   }
 
-  // Mesaj Gönder
-  function sendMessage() {
-    const text = document.getElementById('msgInput').value;
-    const user = auth.currentUser;
-    if(!user || text.trim()==="") return;
+  // Chat gönderimi
+  sendBtn.onclick = () => {
+    const text = messageInput.value.trim();
+    if(!text) return;
     db.collection('messages').add({
-      uid: user.uid,
-      email: user.email,
+      uid: currentUser.uid,
       text: text,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
-    document.getElementById('msgInput').value='';
-  }
+    messageInput.value = '';
+  };
 
-  // Mesajları Yükle
-  function loadMessages() {
-    db.collection('messages').orderBy('timestamp').onSnapshot(snapshot => {
-      const messagesDiv = document.getElementById('messages');
-      messagesDiv.innerHTML='';
-      snapshot.forEach(doc => {
-        const m = doc.data();
-        messagesDiv.innerHTML += `<p><b>${m.email}:</b> ${m.text}</p>`;
+  function loadMessages(){
+    db.collection('messages').orderBy('timestamp')
+      .onSnapshot(snapshot => {
+        chatWindow.innerHTML = '';
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const div = document.createElement('div');
+          div.className = 'msg ' + (data.uid === currentUser.uid ? 'me' : 'other');
+          div.textContent = data.text;
+          chatWindow.appendChild(div);
+        });
+        chatWindow.scrollTop = chatWindow.scrollHeight;
       });
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
   }
 </script>
+
 </body>
 </html>
