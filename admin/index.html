@@ -1,1 +1,121 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Exelans Admin Panel</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+  body { font-family: Arial; padding: 20px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background: #eee; }
+  button { padding: 5px 10px; margin: 2px; }
+</style>
+</head>
+<body>
+<h1>zuko Admin Panel</h1>
 
+<div id="authDiv">
+  <input type="email" id="email" placeholder="Admin Email"><br>
+  <input type="password" id="password" placeholder="Şifre"><br>
+  <button onclick="login()">Giriş Yap</button>
+</div>
+
+<div id="adminDiv" style="display:none;">
+  <h2>Kullanıcı Listesi</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Banned</th>
+        <th>Timestamp</th>
+        <th>İşlemler</th>
+      </tr>
+    </thead>
+    <tbody id="usersTable"></tbody>
+  </table>
+</div>
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPEdXPqyz-4N3lmiMr_XG5TfKx2CWCjgg",
+    authDomain: "zuko-admin.firebaseapp.com",
+    projectId: "zuko-admin",
+    storageBucket: "zuko-admin.firebasestorage.app",
+    messagingSenderId: "877574121420",
+    appId: "1:877574121420:web:4b829306c764f478fe5f69",
+    measurementId: "G-STCX0BFB59"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // Admin Giriş
+  function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    auth.signInWithEmailAndPassword(email, password)
+      .then(user => {
+        const uid = user.user.uid;
+        db.collection('users').doc(uid).get().then(doc => {
+          if(doc.exists && doc.data().role !== 'admin'){
+            alert('Sadece admin girebilir!');
+            auth.signOut();
+            return;
+          }
+          document.getElementById('authDiv').style.display='none';
+          document.getElementById('adminDiv').style.display='block';
+          loadUsers();
+        });
+      })
+      .catch(err => alert(err.message));
+  }
+
+  // Kullanıcıları Yükle
+  function loadUsers() {
+    db.collection('users').onSnapshot(snapshot => {
+      const table = document.getElementById('usersTable');
+      table.innerHTML = '';
+      snapshot.forEach(doc => {
+        const u = doc.data();
+        
+        // Timestamp okunabilir hale getir
+        let timeStr = '';
+        if(u.timestamp){
+          const d = u.timestamp.toDate();
+          timeStr = d.toLocaleString();
+        }
+
+        table.innerHTML += `
+          <tr>
+            <td>${u.email}</td>
+            <td>${u.role}</td>
+            <td>${u.banned}</td>
+            <td>${timeStr}</td>
+            <td>
+              <button onclick="toggleBan('${doc.id}', ${u.banned})">Ban/Kaldır</button>
+              <button onclick="toggleRole('${doc.id}', '${u.role}')">Admin/User</button>
+            </td>
+          </tr>
+        `;
+      });
+    });
+  }
+
+  // Ban/Kaldır
+  function toggleBan(uid, current) {
+    db.collection('users').doc(uid).update({ banned: !current });
+  }
+
+  // Role değiştir
+  function toggleRole(uid, current) {
+    const newRole = current === 'admin' ? 'user' : 'admin';
+    db.collection('users').doc(uid).update({ role: newRole });
+  }
+</script>
+</body>
+</html>
