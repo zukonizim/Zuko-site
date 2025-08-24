@@ -3,9 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <title>Zuko and exelans Chat</title>
+
+<!-- HSTS: Sitenin sadece HTTPS üzerinden açılmasını zorunlu kılar -->
+<meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains; preload">
+
+<!-- X-Content-Type-Options: MIME tipi ile oynanmasını engeller -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+
+<!-- X-Frame-Options: Clickjacking saldırılarına karşı -->
+<meta http-equiv="X-Frame-Options" content="DENY">
+
+<!-- Referrer-Policy: Veri sızıntısını azaltır -->
+<meta name="referrer" content="no-referrer-when-downgrade">
+
+<!-- Content-Security-Policy: XSS ve harici scriptleri engeller -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline';">
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
   body { font-family: Arial, sans-serif; background:#111; color:#fff; margin:0; padding:0;}
   header { display:flex; justify-content:space-between; align-items:center; padding:15px; background:#222; border-bottom:1px solid #333;}
@@ -15,81 +32,18 @@
   header nav button { background:#f66; color:#fff; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; margin-left:10px;}
   header nav button:hover { background:#d55;}
   main { max-width:800px; margin:20px auto; padding:10px;}
-  
-  /* Chat penceresi */
-  #chatWindow {
-    background:#222;
-    padding:15px;
-    height:60vh;
-    max-height: calc(100vh - 200px);
-    overflow-y:auto;
-    border-radius:10px;
-    width:100%;
-    box-sizing:border-box;
-  }
-
-  .msg {
-    padding:5px 10px;
-    margin:5px 0;
-    border-radius:8px;
-    max-width:80%;
-    word-wrap:break-word;
-  }
+  #chatWindow { background:#222; padding:15px; height:60vh; max-height: calc(100vh - 200px); overflow-y:auto; border-radius:10px; width:100%; box-sizing:border-box;}
+  .msg { padding:5px 10px; margin:5px 0; border-radius:8px; max-width:80%; word-wrap:break-word;}
   .me { background:#0ff; color:#000; margin-left:auto; text-align:right;}
   .other { background:#333; color:#fff; margin-right:auto; text-align:left;}
-
-  #inputDiv {
-    display:flex;
-    margin-top:10px;
-    max-width:100%;
-  }
-  #messageInput {
-    flex:1;
-    padding:10px;
-    border:none;
-    border-radius:5px 0 0 5px;
-    background:#333;
-    color:#fff;
-  }
-  #sendBtn {
-    padding:10px;
-    background:#0ff;
-    color:#000;
-    border:none;
-    border-radius:0 5px 5px 0;
-    cursor:pointer;
-  }
+  #inputDiv { display:flex; margin-top:10px; max-width:100%;}
+  #messageInput { flex:1; padding:10px; border:none; border-radius:5px 0 0 5px; background:#333; color:#fff;}
+  #sendBtn { padding:10px; background:#0ff; color:#000; border:none; border-radius:0 5px 5px 0; cursor:pointer;}
   #sendBtn:hover { background:#0cc; }
-
-  #loginForm {
-    max-width:400px;
-    margin:50px auto;
-    background:#222;
-    padding:20px;
-    border-radius:10px;
-  }
-  #loginForm input {
-    width:100%;
-    padding:10px;
-    margin:10px 0;
-    border-radius:5px;
-    border:none;
-    background:#333;
-    color:#fff;
-  }
-  #loginForm button {
-    width:100%;
-    padding:10px;
-    border:none;
-    border-radius:5px;
-    background:#0ff;
-    color:#000;
-    cursor:pointer;
-    margin-bottom:5px;
-  }
+  #loginForm { max-width:400px; margin:50px auto; background:#222; padding:20px; border-radius:10px;}
+  #loginForm input { width:100%; padding:10px; margin:10px 0; border-radius:5px; border:none; background:#333; color:#fff; }
+  #loginForm button { width:100%; padding:10px; border:none; border-radius:5px; background:#0ff; color:#000; cursor:pointer; margin-bottom:5px; }
   #loginForm button:hover { background:#0cc; }
-
-  /* Responsive ayarlar */
   @media (max-width:768px) {
     main { padding:10px; }
     #chatWindow { height:50vh; max-height: calc(100vh - 180px); padding:10px; }
@@ -131,11 +85,7 @@
 </main>
 
 <script>
-
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-const firebaseConfig = {
+  const firebaseConfig = {
     apiKey: "AIzaSyCPEdXPqyz-4N3lmiMr_XG5TfKx2CWCjgg",
     authDomain: "zuko-admin.firebaseapp.com",
     projectId: "zuko-admin",
@@ -144,6 +94,10 @@ const firebaseConfig = {
     appId: "1:877574121420:web:4b829306c764f478fe5f69",
     measurementId: "G-STCX0BFB59"
   };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
   const loginForm = document.getElementById('loginForm');
   const chatDiv = document.getElementById('chatDiv');
   const loginMsg = document.getElementById('loginMsg');
@@ -153,12 +107,9 @@ const firebaseConfig = {
   const logoutBtn = document.getElementById('logoutBtn');
   let currentUser = null;
 
-  // Kullanıcı giriş kontrolü
   auth.onAuthStateChanged(async user => {
     if(user){
       currentUser = user;
-
-      // Ban kontrolü
       const userDoc = await db.collection('users').doc(currentUser.uid).get();
       const userData = userDoc.data();
       if(userData && userData.banned){
@@ -168,7 +119,6 @@ const firebaseConfig = {
         auth.signOut();
         return;
       }
-
       loginForm.style.display = 'none';
       chatDiv.style.display = 'block';
       loadMessages();
@@ -178,13 +128,11 @@ const firebaseConfig = {
     }
   });
 
-  // Kayıt
   document.getElementById('registerBtn').onclick = () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     auth.createUserWithEmailAndPassword(email, password)
       .then(cred => {
-        // Kullanıcı dokümanı oluştur
         db.collection('users').doc(cred.user.uid).set({
           uid: cred.user.uid,
           email: cred.user.email,
@@ -196,7 +144,6 @@ const firebaseConfig = {
       .catch(e => loginMsg.textContent = e.message);
   }
 
-  // Giriş
   document.getElementById('loginBtn').onclick = () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -204,12 +151,8 @@ const firebaseConfig = {
       .catch(e => loginMsg.textContent = e.message);
   }
 
-  // Çıkış
-  logoutBtn.onclick = () => {
-    auth.signOut();
-  }
+  logoutBtn.onclick = () => { auth.signOut(); }
 
-  // Chat gönderimi
   sendBtn.onclick = () => {
     const text = messageInput.value.trim();
     if(!text) return;
@@ -221,7 +164,6 @@ const firebaseConfig = {
     messageInput.value = '';
   };
 
-  // Mesajları yükle
   function loadMessages(){
     db.collection('messages').orderBy('timestamp')
       .onSnapshot(snapshot => {
